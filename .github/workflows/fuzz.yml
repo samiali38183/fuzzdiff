@@ -35,10 +35,11 @@ jobs:
           - target: rust_only
             c_sanitize: ""
             rustflags: ""
-          # C only, under ASan and UBSan.
+          # C only, under ASan and UBSan. The UBSan handlers are provided by the ASan
+          # runtime that cargo-fuzz links (linking a second UBSan runtime collides).
           - target: c_only
             c_sanitize: address,undefined,fuzzer-no-link
-            rustflags: -C linker=clang -C link-arg=-fsanitize=undefined
+            rustflags: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
