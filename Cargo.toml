@@ -1,0 +1,36 @@
+[package]
+name = "fuzzdiff"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "Memory-safe Rust port of the picohttpparser HTTP/1.x parser, validated against the C original by differential fuzzing"
+license = "MIT"
+repository = "https://github.com/samiali38183/fuzzdiff"
+readme = "README.md"
+keywords = ["http", "parser", "fuzzing", "security"]
+categories = ["parser-implementations", "network-programming"]
+exclude = ["fuzz/", "corpus/", "c/", "harness/"]
+
+[workspace]
+members = [".", "harness"]
+# fuzz/ is a separate cargo-fuzz workspace (needs nightly, runs in CI on Linux).
+exclude = ["fuzz"]
+
+[features]
+default = []
+# Deliberately buggy variants of the parser, used only by the harness to prove
+# that differential testing catches real bug classes. Never enable in production.
+mutants = []
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+debug = 1
+
+[profile.bench]
+debug = 1
