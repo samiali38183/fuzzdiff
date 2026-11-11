@@ -14,6 +14,9 @@ mutants = ["fuzzdiff/mutants"]
 
 [dependencies]
 fuzzdiff = { path = ".." }
+# Third oracle for the three-way differential (tests, docs and the httparse_table example).
+# Pinned exactly so the pinned disagreement classes cannot move under us.
+httparse = "=1.10.1"
 
 [build-dependencies]
 cc = "1"

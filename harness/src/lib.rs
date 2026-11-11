@@ -7,6 +7,9 @@
 
 pub mod ffi;
 pub mod generate;
+pub mod httparse_cases;
+pub mod httparse_oracle;
+pub mod httparse_report;
 
 use fuzzdiff::{ChunkStatus, ChunkedDecoder, Config, Error, Header, Status};
 use std::panic::{catch_unwind, AssertUnwindSafe};

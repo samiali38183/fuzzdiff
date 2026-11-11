@@ -121,6 +121,12 @@ fn header_block(r: &mut Rng, lf_only: bool) -> Vec<u8> {
     v
 }
 
+/// A well-formed header block ending in an empty line (for `parse_headers`).
+pub fn valid_headers(r: &mut Rng) -> Vec<u8> {
+    let lf = r.chance(1, 8);
+    header_block(r, lf)
+}
+
 /// A well-formed request head, sometimes followed by a body.
 pub fn valid_request(r: &mut Rng) -> Vec<u8> {
     let lf = r.chance(1, 8);
