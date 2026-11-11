@@ -1,0 +1,4 @@
+GET /api/v1/users/42 HTTP/1.1
+Host: api.example.com
+Accept: application/json
+

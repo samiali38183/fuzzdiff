@@ -1,0 +1,9 @@
+POST /api/v1/events HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+Content-Length: 128
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U
+User-Agent: curl/8.4.0
+Accept: */*
+X-Request-Id: 3f2b8c1e-9d1a-4c52-8f77-1f1e0a2b3c4d
+
