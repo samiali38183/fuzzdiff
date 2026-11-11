@@ -297,3 +297,39 @@ pub fn random_case(r: &mut Rng) -> Case {
     }
     c
 }
+
+/// Hand-built cases aimed at guards the random generator cannot reach: a chunked body whose
+/// framing is 76.9% of the input and over 100 KiB (between the 75% and 80% thresholds of the
+/// overhead guard), its 70% and 90% neighbours, and response heads cut off with exactly three
+/// bytes after the status-line spaces.
+pub fn targeted_cases() -> Vec<Case> {
+    fn chunks(payload: usize, count: usize) -> Case {
+        // 16 hex digits with leading zeros: 18 bytes of size line, `payload` bytes, CRLF.
+        let mut v = Vec::new();
+        for _ in 0..count {
+            v.extend_from_slice(format!("{payload:016x}\r\n").as_bytes());
+            v.extend(std::iter::repeat_n(b'x', payload));
+            v.extend_from_slice(b"\r\n");
+        }
+        Case::new(Op::Chunked, v)
+    }
+    let mut out = vec![
+        // overhead 20/26 = 76.9%: guard fires at /4 (above 75%), not at /5 (above 80%)
+        chunks(6, 6000),
+        // overhead 20/28 = 71.4%: below both thresholds, must stay incomplete
+        chunks(8, 6000),
+        // overhead 20/22 = 90.9%: above both
+        chunks(2, 6000),
+    ];
+    for head in [
+        &b"HTTP/1.1 2x1"[..],
+        b"HTTP/1.1 20x",
+        b"HTTP/1.1 x00",
+        b"HTTP/1.1  2x1",
+        b"HTTP/1.1 600",
+        b"HTTP/1.1 200",
+    ] {
+        out.push(Case::new(Op::Response, head));
+    }
+    out
+}
