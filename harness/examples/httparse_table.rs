@@ -48,12 +48,6 @@ fn main() {
     for e in &st.unclassified_examples {
         eprintln!("unclassified: {:?}", String::from_utf8_lossy(e));
     }
-    for (op, e) in &st.early_examples {
-        eprintln!(
-            "early-reject sample {op:?}: {:?}",
-            String::from_utf8_lossy(e)
-        );
-    }
     let curated = render_curated();
     let sweep_md = render_sweep(&st);
 

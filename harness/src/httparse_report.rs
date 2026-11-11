@@ -43,18 +43,12 @@ pub struct Sweep {
     pub early_reject: u64,
     /// More header lines than the shared 64-slot capacity (differing cap timing).
     pub header_cap: u64,
-    /// A sample of those, for inspection.
-    pub early_examples: Vec<(Op, Vec<u8>)>,
     /// The shortest few unclassified inputs.
     pub unclassified_examples: Vec<Vec<u8>>,
     /// Inputs where picohttpparser and fuzzdiff differ (a bug in one of them). Must be zero.
     pub c_vs_rust: u64,
     /// Inputs where all three completed but returned different fields.
     pub field_diff: u64,
-}
-
-fn i_sample(n: u64) -> bool {
-    n % 3000 == 1
 }
 
 fn op_name(op: Op) -> &'static str {
@@ -147,12 +141,7 @@ impl Sweep {
                 }
             }
             Explanation::HeaderCap => self.header_cap += 1,
-            Explanation::EarlyReject => {
-                self.early_reject += 1;
-                if self.early_examples.len() < 12 && i_sample(self.early_reject) {
-                    self.early_examples.push((op, data.to_vec()));
-                }
-            }
+            Explanation::EarlyReject => self.early_reject += 1,
             Explanation::Unexplained => {
                 self.unclassified += 1;
                 self.unclassified_examples.push(data.to_vec());
