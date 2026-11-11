@@ -74,9 +74,9 @@ decided, that `HTTP/1.` needs nine bytes before it is judged, that the empty-met
 happens after the target is scanned) were kept on purpose, because the differential harness
 compares them.
 
-Indexing is done with `get` and checked slicing helpers rather than `[]`, so there is no
-place the parser can panic by construction. The fuzz target `rust_only` checks that this
-holds. The one direct index is inside the `MissingBoundsCheck` mutant.
+Indexing is done with `get` and checked slicing helpers rather than `[]`, which removes the
+usual panic sites. Slice moves and arithmetic still rely on invariants, so the fuzz target
+`rust_only` and the property tests check that no input makes the parser panic. The one direct index is inside the `MissingBoundsCheck` mutant.
 
 ## The harness
 

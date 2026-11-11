@@ -275,10 +275,18 @@ fn compare_head(case: &Case) -> Outcome {
     };
 
     if cfg.reject_obs_fold && rust.1 == Some(Error::ObsFold) {
+        // Only a folded line (a line feed followed by a space or tab) justifies this error.
+        // Without that check, a bug that reports ObsFold on a normal header would look like
+        // the documented deviation and pass.
         return if c == Norm::Reject {
             Outcome::BothReject
-        } else {
+        } else if has_fold(&case.data) {
             Outcome::RustStricter(Deviation::ObsFold)
+        } else {
+            diverge(
+                DivergenceKind::ResultMismatch,
+                "ObsFold reported but the input has no folded line".to_string(),
+            )
         };
     }
     if c == rust.0 {
@@ -483,4 +491,27 @@ pub fn describe(case: &Case) -> String {
         case.pieces,
         String::from_utf8_lossy(&case.data)
     )
+}
+
+/// True when the bytes contain a line feed followed by a space or tab, which is the
+/// necessary condition for an obsolete folded header line.
+fn has_fold(data: &[u8]) -> bool {
+    data.windows(2)
+        .any(|w| w[0] == b'\n' && (w[1] == b' ' || w[1] == b'\t'))
+}
+
+#[cfg(test)]
+mod fold_tests {
+    use super::has_fold;
+
+    #[test]
+    fn fold_needs_a_line_feed_then_space_or_tab() {
+        assert!(has_fold(b"GET / HTTP/1.1\r\nA: b\r\n c\r\n\r\n"));
+        assert!(has_fold(b"A: b\n\tc\n"));
+        assert!(!has_fold(
+            b"GET / HTTP/1.1\r\nX-Forwarded-For: 1.2.3.4\r\n\r\n"
+        ));
+        assert!(!has_fold(b"a b\tc"));
+        assert!(!has_fold(b"\n"));
+    }
 }

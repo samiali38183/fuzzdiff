@@ -24,8 +24,8 @@ The reasoning and the alternatives are in [docs/DESIGN.md](docs/DESIGN.md).
 
 ## What is in the repository
 
-* `src/`: the Rust crate. `#![forbid(unsafe_code)]`, no dependencies, no panics by
-  construction, about 990 lines including docs and the seeded test bugs. Request, response,
+* `src/`: the Rust crate. `#![forbid(unsafe_code)]`, no dependencies, written to avoid
+  panics (checked indexing and arithmetic), about 990 lines including docs and the seeded test bugs. Request, response,
   header block and an incremental in-place chunked decoder.
 * `c/`: picohttpparser at commit dd573d8 (unmodified, hashes checked) and a thin shim that
   returns offsets instead of pointers and copies inputs into exact-size heap blocks.
