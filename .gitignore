@@ -1,8 +1,7 @@
 /target
 /fuzz/target
 /fuzz/artifacts
-/fuzz/corpus/*/
-!/fuzz/corpus/diff/
+/fuzz/corpus
 Cargo.lock.bak
 *.profraw
 lcov.info

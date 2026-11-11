@@ -1,0 +1,36 @@
+[package]
+name = "fuzzdiff-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+fuzzdiff = { path = ".." }
+fuzzdiff-harness = { path = "../harness" }
+
+[workspace]
+
+[[bin]]
+name = "diff"
+path = "fuzz_targets/diff.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "rust_only"
+path = "fuzz_targets/rust_only.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "c_only"
+path = "fuzz_targets/c_only.rs"
+test = false
+doc = false
+bench = false

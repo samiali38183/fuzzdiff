@@ -252,3 +252,19 @@ fn deviations_are_documented() {
         );
     }
 }
+
+#[test]
+fn seed_encoding_round_trips() {
+    for (name, data) in corpus_files() {
+        for op in [Op::Request, Op::Response, Op::Headers, Op::Chunked] {
+            let mut c = Case::new(op, data.clone()).with_piece_size(3);
+            c.max_headers = 8;
+            c.strict = op == Op::Request;
+            c.consume_trailer = op == Op::Chunked;
+            let back = Case::from_bytes(&c.to_seed_bytes());
+            assert_eq!(back.data, data);
+            assert_eq!(back.op, op);
+            check(&name, &back);
+        }
+    }
+}
