@@ -15,31 +15,44 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  # 120 s per target on pull requests, 1800 s on the weekly schedule, or the dispatch input.
-  SECONDS_PER_TARGET: ${{ github.event_name == 'schedule' && '1800' || github.event.inputs.seconds || '120' }}
+  # 120 s per target on pull requests, 3600 s on the weekly schedule, or the dispatch input.
+  SECONDS_PER_TARGET: ${{ github.event_name == 'schedule' && '3600' || github.event.inputs.seconds || '120' }}
 
 jobs:
   fuzz:
-    name: fuzz ${{ matrix.target }}
+    name: fuzz ${{ matrix.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Differential: C (ASan-instrumented, with coverage) against Rust.
-          - target: diff
+          # Differential: C (ASan-instrumented, with coverage) against Rust. The "-sse42" legs
+          # build the C side with -msse4.2 (FUZZDIFF_C_SSE42=1) so the C SIMD path is the
+          # one being fuzzed; the other legs run the portable C path.
+          - name: diff
+            target: diff
+            sse42: "0"
             c_sanitize: address,fuzzer-no-link
-            rustflags: ""
+          - name: diff-sse42
+            target: diff
+            sse42: "1"
+            c_sanitize: address,fuzzer-no-link
           # Rust only: panics, overflow (debug assertions) and output invariants.
-          - target: rust_only
+          - name: rust_only
+            target: rust_only
+            sse42: "0"
             c_sanitize: ""
-            rustflags: ""
           # C only, under ASan and UBSan. The UBSan handlers are provided by the ASan
           # runtime that cargo-fuzz links (linking a second UBSan runtime collides).
-          - target: c_only
+          - name: c_only
+            target: c_only
+            sse42: "0"
             c_sanitize: address,undefined,fuzzer-no-link
-            rustflags: ""
+          - name: c_only-sse42
+            target: c_only
+            sse42: "1"
+            c_sanitize: address,undefined,fuzzer-no-link
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -52,32 +65,58 @@ jobs:
           tool: cargo-fuzz
       # cargo-fuzz from install-action is a musl build and defaults to the musl target,
       # where sanitizers are unsupported; the gnu target is passed explicitly.
+      # The corpus is restored from the most recent run of the same leg (cache entries are
+      # best-effort and are evicted after 7 days without use), then the seeds from corpus/ are
+      # written on top, so a cold cache simply starts from the seeds.
+      - name: Restore corpus from earlier runs
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus/${{ matrix.name }}
+          key: fuzz-corpus-${{ matrix.name }}-${{ github.run_id }}
+          restore-keys: |
+            fuzz-corpus-${{ matrix.name }}-
       - name: Seed corpus from corpus/
-        run: cargo run -q -p fuzzdiff-harness --example seeds -- "fuzz/corpus/${TARGET}"
+        run: cargo run -q -p fuzzdiff-harness --example seeds -- "fuzz/corpus/${NAME}"
         env:
-          TARGET: ${{ matrix.target }}
+          NAME: ${{ matrix.name }}
+      - name: Corpus size before
+        run: echo "files before - $(find "fuzz/corpus/${NAME}" -type f | wc -l)"
+        env:
+          NAME: ${{ matrix.name }}
       - name: Fuzz
         run: |
-          cargo fuzz run --target x86_64-unknown-linux-gnu "${TARGET}" "fuzz/corpus/${TARGET}" -- \
+          cargo fuzz run --target x86_64-unknown-linux-gnu "${TARGET}" "fuzz/corpus/${NAME}" -- \
             -max_total_time="${SECONDS_PER_TARGET}" -max_len=4096 -dict=fuzz/http.dict -print_final_stats=1
         env:
           TARGET: ${{ matrix.target }}
+          NAME: ${{ matrix.name }}
+          FUZZDIFF_C_SSE42: ${{ matrix.sse42 }}
           CC: clang
           ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:print_stacktrace=1:detect_odr_violation=0
           UBSAN_OPTIONS: halt_on_error=1:abort_on_error=1:print_stacktrace=1
           FUZZDIFF_C_SANITIZE: ${{ matrix.c_sanitize }}
-          RUSTFLAGS: ${{ matrix.rustflags }}
       - name: Upload crashes
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: crashes-${{ matrix.target }}
+          name: crashes-${{ matrix.name }}
           path: fuzz/artifacts/${{ matrix.target }}
           if-no-files-found: ignore
+      - name: Corpus size after
+        if: always()
+        run: echo "files after - $(find "fuzz/corpus/${NAME}" -type f | wc -l)"
+        env:
+          NAME: ${{ matrix.name }}
+      - name: Save corpus for the next run
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus/${{ matrix.name }}
+          key: fuzz-corpus-${{ matrix.name }}-${{ github.run_id }}
       - name: Upload corpus
         if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: corpus-${{ matrix.target }}
-          path: fuzz/corpus/${{ matrix.target }}
+          name: corpus-${{ matrix.name }}
+          path: fuzz/corpus/${{ matrix.name }}
           retention-days: 30
