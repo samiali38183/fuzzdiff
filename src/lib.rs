@@ -6,7 +6,8 @@
 //! for the small list of deliberate differences in `docs/DEVIATIONS.md`.
 //!
 //! * `#![forbid(unsafe_code)]`: every access is bounds checked.
-//! * No panics on any input. Failure is a [`Error`], missing data is
+//! * Written not to panic on any input (checked indexing and arithmetic; the `rust_only`
+//!   fuzz target and the property tests check it). Failure is a [`Error`], missing data is
 //!   [`Status::Partial`].
 //! * Zero-copy: parsed method, path, header names and values borrow from the
 //!   input buffer.
