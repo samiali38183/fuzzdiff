@@ -40,5 +40,6 @@ pub mod mutants;
 pub use chunked::{ChunkStatus, ChunkedDecoder, Decoded};
 pub use error::Error;
 pub use message::{
-    parse_headers, parse_request, parse_response, Config, Header, Headers, Request, Response, Status,
+    parse_headers, parse_request, parse_response, Config, Header, Headers, Request, Response,
+    Status,
 };

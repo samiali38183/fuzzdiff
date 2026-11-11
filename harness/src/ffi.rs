@@ -41,7 +41,8 @@ struct RawChunkResult {
     left_len: usize,
 }
 
-type ParseFn = unsafe extern "C" fn(*const u8, usize, usize, *mut RawHeader, usize, *mut RawHead) -> i64;
+type ParseFn =
+    unsafe extern "C" fn(*const u8, usize, usize, *mut RawHeader, usize, *mut RawHead) -> i64;
 
 extern "C" {
     fn fd_parse_request(
@@ -125,7 +126,10 @@ pub struct CHead {
 
 /// Call the C parser. `last_len` must be at most `data.len()`.
 pub fn c_parse(kind: HeadKind, data: &[u8], last_len: usize, max_headers: usize) -> CHead {
-    assert!(last_len <= data.len(), "C parser reads out of bounds when last_len > len");
+    assert!(
+        last_len <= data.len(),
+        "C parser reads out of bounds when last_len > len"
+    );
     let f: ParseFn = match kind {
         HeadKind::Request => fd_parse_request,
         HeadKind::Response => fd_parse_response,
@@ -137,7 +141,14 @@ pub fn c_parse(kind: HeadKind, data: &[u8], last_len: usize, max_headers: usize)
     // `max_headers` entries (at least one), `head` is a valid out-pointer, and
     // last_len <= len was asserted above. The shim copies the input.
     let ret = unsafe {
-        f(data.as_ptr(), data.len(), last_len, raw.as_mut_ptr(), max_headers, &mut head)
+        f(
+            data.as_ptr(),
+            data.len(),
+            last_len,
+            raw.as_mut_ptr(),
+            max_headers,
+            &mut head,
+        )
     };
     let headers = if ret >= 0 {
         raw.iter()
@@ -210,7 +221,11 @@ pub fn c_chunked(data: &[u8], pieces: &[usize], consume_trailer: bool) -> CChunk
         steps: steps
             .iter()
             .take(res.steps)
-            .map(|s| CChunkStep { ret: s.ret, newlen: s.newlen, in_data: s.in_data != 0 })
+            .map(|s| CChunkStep {
+                ret: s.ret,
+                newlen: s.newlen,
+                in_data: s.in_data != 0,
+            })
             .collect(),
         out,
         left,

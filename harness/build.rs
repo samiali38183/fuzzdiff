@@ -21,7 +21,7 @@ fn main() {
 
     if let Ok(san) = env::var("FUZZDIFF_C_SANITIZE") {
         if !san.is_empty() {
-            build.flag(&format!("-fsanitize={san}"));
+            build.flag(format!("-fsanitize={san}"));
             build.flag("-fno-omit-frame-pointer");
             build.flag("-fno-sanitize-recover=undefined");
             if env::var("FUZZDIFF_C_SANITIZE_LINK").is_ok_and(|v| v == "1") {
@@ -38,7 +38,11 @@ fn main() {
     for f in ["picohttpparser.c", "picohttpparser.h", "shim.c", "shim.h"] {
         println!("cargo:rerun-if-changed={c_dir}/{f}");
     }
-    for v in ["FUZZDIFF_C_SANITIZE", "FUZZDIFF_C_SANITIZE_LINK", "FUZZDIFF_C_SSE42"] {
+    for v in [
+        "FUZZDIFF_C_SANITIZE",
+        "FUZZDIFF_C_SANITIZE_LINK",
+        "FUZZDIFF_C_SSE42",
+    ] {
         println!("cargo:rerun-if-env-changed={v}");
     }
 }

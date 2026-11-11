@@ -6,6 +6,7 @@
 //! is a bug in one of the two implementations.
 
 pub mod ffi;
+pub mod generate;
 
 use fuzzdiff::{ChunkStatus, ChunkedDecoder, Config, Error, Header, Status};
 use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -49,7 +50,15 @@ impl Case {
     pub fn new(op: Op, data: impl Into<Vec<u8>>) -> Case {
         let data = data.into();
         let pieces = vec![data.len()];
-        Case { op, data, last_len: 0, max_headers: 32, strict: false, consume_trailer: false, pieces }
+        Case {
+            op,
+            data,
+            last_len: 0,
+            max_headers: 32,
+            strict: false,
+            consume_trailer: false,
+            pieces,
+        }
     }
 
     /// Split the input into pieces of `size` bytes (the last may be shorter).
@@ -118,7 +127,7 @@ fn split_pieces(len: usize, size: usize) -> Vec<usize> {
         return vec![len];
     }
     let mut v = vec![size; len / size];
-    if len % size != 0 {
+    if len > (len / size) * size {
         v.push(len % size);
     }
     v
@@ -232,11 +241,16 @@ fn head_kind(op: Op) -> HeadKind {
 }
 
 fn compare_head(case: &Case) -> Outcome {
-    let cfg = Config { reject_obs_fold: case.strict };
+    let cfg = Config {
+        reject_obs_fold: case.strict,
+    };
     let rust = match catch_unwind(AssertUnwindSafe(|| rust_head(case, cfg))) {
         Ok(r) => r,
         Err(p) => {
-            return diverge(DivergenceKind::RustPanic, format!("Rust panicked: {}", panic_text(&p)));
+            return diverge(
+                DivergenceKind::RustPanic,
+                format!("Rust panicked: {}", panic_text(&p)),
+            );
         }
     };
 
@@ -246,7 +260,10 @@ fn compare_head(case: &Case) -> Outcome {
             Some(Error::InvalidLastLen) => Outcome::RustStricter(Deviation::LastLenOutOfRange),
             other => diverge(
                 DivergenceKind::ResultMismatch,
-                format!("last_len > len: expected InvalidLastLen, Rust gave {:?} / {other:?}", rust.0),
+                format!(
+                    "last_len > len: expected InvalidLastLen, Rust gave {:?} / {other:?}",
+                    rust.0
+                ),
             ),
         };
     }
@@ -258,51 +275,71 @@ fn compare_head(case: &Case) -> Outcome {
     };
 
     if cfg.reject_obs_fold && rust.1 == Some(Error::ObsFold) {
-        return if c == Norm::Reject { Outcome::BothReject } else { Outcome::RustStricter(Deviation::ObsFold) };
+        return if c == Norm::Reject {
+            Outcome::BothReject
+        } else {
+            Outcome::RustStricter(Deviation::ObsFold)
+        };
     }
     if c == rust.0 {
-        return if c == Norm::Reject { Outcome::BothReject } else { Outcome::Equal };
+        return if c == Norm::Reject {
+            Outcome::BothReject
+        } else {
+            Outcome::Equal
+        };
     }
-    diverge(DivergenceKind::ResultMismatch, format!("C: {c:?}\nRust: {:?} ({:?})", rust.0, rust.1))
+    diverge(
+        DivergenceKind::ResultMismatch,
+        format!("C: {c:?}\nRust: {:?} ({:?})", rust.0, rust.1),
+    )
 }
 
 fn rust_head(case: &Case, cfg: Config) -> (Norm, Option<Error>) {
     let mut headers = vec![Header::EMPTY; case.max_headers];
     let data = &case.data[..];
     let to_headers = |n: usize, h: &[Header<'_>]| -> Vec<(Option<Vec<u8>>, Vec<u8>)> {
-        h.iter().take(n).map(|h| (h.name.map(<[u8]>::to_vec), h.value.to_vec())).collect()
+        h.iter()
+            .take(n)
+            .map(|h| (h.name.map(<[u8]>::to_vec), h.value.to_vec()))
+            .collect()
     };
     let result = match case.op {
-        Op::Request => cfg.parse_request(data, &mut headers, case.last_len).map(|s| match s {
-            Status::Partial => Norm::Partial,
-            Status::Complete(r) => Norm::Done(Box::new(Head {
-                consumed: r.consumed,
-                method: r.method.to_vec(),
-                path: r.path.to_vec(),
-                minor_version: i32::from(r.minor_version),
-                headers: to_headers(r.num_headers, &headers),
-                ..Head::default()
-            })),
-        }),
-        Op::Response => cfg.parse_response(data, &mut headers, case.last_len).map(|s| match s {
-            Status::Partial => Norm::Partial,
-            Status::Complete(r) => Norm::Done(Box::new(Head {
-                consumed: r.consumed,
-                reason: r.reason.to_vec(),
-                minor_version: i32::from(r.minor_version),
-                status: i32::from(r.status),
-                headers: to_headers(r.num_headers, &headers),
-                ..Head::default()
-            })),
-        }),
-        _ => cfg.parse_headers(data, &mut headers, case.last_len).map(|s| match s {
-            Status::Partial => Norm::Partial,
-            Status::Complete(r) => Norm::Done(Box::new(Head {
-                consumed: r.consumed,
-                headers: to_headers(r.num_headers, &headers),
-                ..Head::default()
-            })),
-        }),
+        Op::Request => cfg
+            .parse_request(data, &mut headers, case.last_len)
+            .map(|s| match s {
+                Status::Partial => Norm::Partial,
+                Status::Complete(r) => Norm::Done(Box::new(Head {
+                    consumed: r.consumed,
+                    method: r.method.to_vec(),
+                    path: r.path.to_vec(),
+                    minor_version: i32::from(r.minor_version),
+                    headers: to_headers(r.num_headers, &headers),
+                    ..Head::default()
+                })),
+            }),
+        Op::Response => cfg
+            .parse_response(data, &mut headers, case.last_len)
+            .map(|s| match s {
+                Status::Partial => Norm::Partial,
+                Status::Complete(r) => Norm::Done(Box::new(Head {
+                    consumed: r.consumed,
+                    reason: r.reason.to_vec(),
+                    minor_version: i32::from(r.minor_version),
+                    status: i32::from(r.status),
+                    headers: to_headers(r.num_headers, &headers),
+                    ..Head::default()
+                })),
+            }),
+        _ => cfg
+            .parse_headers(data, &mut headers, case.last_len)
+            .map(|s| match s {
+                Status::Partial => Norm::Partial,
+                Status::Complete(r) => Norm::Done(Box::new(Head {
+                    consumed: r.consumed,
+                    headers: to_headers(r.num_headers, &headers),
+                    ..Head::default()
+                })),
+            }),
     };
     match result {
         Ok(n) => (n, None),
@@ -311,14 +348,24 @@ fn rust_head(case: &Case, cfg: Config) -> (Norm, Option<Error>) {
 }
 
 fn c_head(case: &Case) -> Result<Norm, String> {
-    let c = ffi::c_parse(head_kind(case.op), &case.data, case.last_len, case.max_headers);
+    let c = ffi::c_parse(
+        head_kind(case.op),
+        &case.data,
+        case.last_len,
+        case.max_headers,
+    );
     match c.ret {
         -2 => return Ok(Norm::Partial),
         -1 => return Ok(Norm::Reject),
         r if r < 0 => return Ok(Norm::Other(r)),
         _ => {}
     }
-    let bad = |what: &str| format!("C returned out-of-range {what} for input of {} bytes: {c:?}", case.data.len());
+    let bad = |what: &str| {
+        format!(
+            "C returned out-of-range {what} for input of {} bytes: {c:?}",
+            case.data.len()
+        )
+    };
     let slice = |(off, len): (usize, usize)| -> Option<Vec<u8>> {
         let end = off.checked_add(len)?;
         case.data.get(off..end).map(<[u8]>::to_vec)
@@ -351,7 +398,11 @@ fn c_head(case: &Case) -> Result<Norm, String> {
 
 fn rust_chunked(case: &Case) -> ffi::CChunked {
     let mut dec = ChunkedDecoder::new(case.consume_trailer);
-    let mut res = ffi::CChunked { steps: Vec::new(), out: Vec::new(), left: Vec::new() };
+    let mut res = ffi::CChunked {
+        steps: Vec::new(),
+        out: Vec::new(),
+        left: Vec::new(),
+    };
     let mut off: usize = 0;
     for &n in &case.pieces {
         let end = off.saturating_add(n).min(case.data.len());
@@ -363,10 +414,16 @@ fn rust_chunked(case: &Case) -> ffi::CChunked {
             ChunkStatus::Error(_) => -1,
             ChunkStatus::Complete { leftover } => i64::try_from(leftover).unwrap_or(i64::MAX),
         };
-        res.steps.push(ffi::CChunkStep { ret, newlen: d.len, in_data: dec.is_in_data() });
-        res.out.extend_from_slice(buf.get(..d.len).unwrap_or_default());
+        res.steps.push(ffi::CChunkStep {
+            ret,
+            newlen: d.len,
+            in_data: dec.is_in_data(),
+        });
+        res.out
+            .extend_from_slice(buf.get(..d.len).unwrap_or_default());
         if let ChunkStatus::Complete { leftover } = d.status {
-            res.left.extend_from_slice(buf.get(d.len..d.len + leftover).unwrap_or_default());
+            res.left
+                .extend_from_slice(buf.get(d.len..d.len + leftover).unwrap_or_default());
         }
         if ret != -2 {
             break;
@@ -379,12 +436,18 @@ fn compare_chunked(case: &Case) -> Outcome {
     let rust = match catch_unwind(AssertUnwindSafe(|| rust_chunked(case))) {
         Ok(r) => r,
         Err(p) => {
-            return diverge(DivergenceKind::RustPanic, format!("Rust panicked: {}", panic_text(&p)));
+            return diverge(
+                DivergenceKind::RustPanic,
+                format!("Rust panicked: {}", panic_text(&p)),
+            );
         }
     };
     let c = ffi::c_chunked(&case.data, &case.pieces, case.consume_trailer);
     if c != rust {
-        return diverge(DivergenceKind::ResultMismatch, format!("C: {c:?}\nRust: {rust:?}"));
+        return diverge(
+            DivergenceKind::ResultMismatch,
+            format!("C: {c:?}\nRust: {rust:?}"),
+        );
     }
     match c.steps.last() {
         Some(s) if s.ret == -1 => Outcome::BothReject,

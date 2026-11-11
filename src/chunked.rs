@@ -104,7 +104,10 @@ impl ChunkedDecoder {
     /// return `Error(DecoderFinished)` without touching the buffer.
     pub fn decode(&mut self, buf: &mut [u8]) -> Decoded {
         if self.finished {
-            return Decoded { len: 0, status: ChunkStatus::Error(Error::DecoderFinished) };
+            return Decoded {
+                len: 0,
+                status: ChunkStatus::Error(Error::DecoderFinished),
+            };
         }
         let total = buf.len();
         self.total_read = self.total_read.wrapping_add(total as u64);
@@ -171,7 +174,9 @@ impl ChunkedDecoder {
                         if self.consume_trailer {
                             self.state = State::TrailerHead;
                         } else {
-                            status = ChunkStatus::Complete { leftover: total - src };
+                            status = ChunkStatus::Complete {
+                                leftover: total - src,
+                            };
                             break 'run;
                         }
                     } else {
@@ -219,13 +224,20 @@ impl ChunkedDecoder {
                     let Some(&c) = buf.get(src) else { break 'run };
                     src += 1;
                     if c == b'\n' {
-                        status = ChunkStatus::Complete { leftover: total - src };
+                        status = ChunkStatus::Complete {
+                            leftover: total - src,
+                        };
                         break 'run;
                     }
                     self.state = State::TrailerMiddle;
                 }
                 State::TrailerMiddle => {
-                    match buf.get(src..).unwrap_or_default().iter().position(|&b| b == b'\n') {
+                    match buf
+                        .get(src..)
+                        .unwrap_or_default()
+                        .iter()
+                        .position(|&b| b == b'\n')
+                    {
                         None => {
                             src = total;
                             break 'run;

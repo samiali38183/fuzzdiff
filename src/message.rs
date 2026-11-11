@@ -31,7 +31,10 @@ pub struct Header<'a> {
 
 impl Header<'_> {
     /// Placeholder for initialising a header array: `[Header::EMPTY; 32]`.
-    pub const EMPTY: Header<'static> = Header { name: None, value: &[] };
+    pub const EMPTY: Header<'static> = Header {
+        name: None,
+        value: &[],
+    };
 }
 
 /// A parsed request head. The headers are written into the caller's slice;
@@ -191,7 +194,13 @@ impl Config {
         }
 
         let num_headers = self.header_lines(&mut c, headers)?;
-        Ok(Request { method, path, minor_version, num_headers, consumed: c.pos })
+        Ok(Request {
+            method,
+            path,
+            minor_version,
+            num_headers,
+            consumed: c.pos,
+        })
     }
 
     fn response<'a>(
@@ -225,7 +234,13 @@ impl Config {
         };
 
         let num_headers = self.header_lines(&mut c, headers)?;
-        Ok(Response { minor_version, status, reason, num_headers, consumed: c.pos })
+        Ok(Response {
+            minor_version,
+            status,
+            reason,
+            num_headers,
+            consumed: c.pos,
+        })
     }
 
     fn header_block<'a>(
@@ -237,7 +252,10 @@ impl Config {
         check_complete(buf, last_len)?;
         let mut c = Cursor::new(buf);
         let num_headers = self.header_lines(&mut c, headers)?;
-        Ok(Headers { num_headers, consumed: c.pos })
+        Ok(Headers {
+            num_headers,
+            consumed: c.pos,
+        })
     }
 
     /// Header lines up to and including the blank line. Returns the count.
@@ -288,7 +306,10 @@ impl Config {
             if mutants::active(Mutant::HeaderLenOffByOne) && len > 16 {
                 len -= 1;
             }
-            *slot = Header { name, value: raw.get(..len).unwrap_or_default() };
+            *slot = Header {
+                name,
+                value: raw.get(..len).unwrap_or_default(),
+            };
             n += 1;
         }
     }
@@ -468,7 +489,11 @@ impl<'a> Cursor<'a> {
     /// `HTTP/1.x`. Asks for nine bytes before judging, like the C library, so
     /// the byte after the digit is guaranteed to exist.
     fn version(&mut self) -> Step<u8> {
-        let need = if mutants::active(Mutant::MissingBoundsCheck) { 8 } else { 9 };
+        let need = if mutants::active(Mutant::MissingBoundsCheck) {
+            8
+        } else {
+            9
+        };
         let rest = self.rest();
         if rest.len() < need {
             return Err(Stop::Partial);
