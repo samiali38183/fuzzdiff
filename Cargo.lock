@@ -272,11 +272,11 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "fuzzdiff"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "fuzzdiff-harness"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cc",
  "criterion",

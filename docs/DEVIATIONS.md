@@ -83,5 +83,11 @@ tested here.
 The C SIMD path. picohttpparser has an SSE4.2 code path enabled by `__SSE4_2__`. MSVC does
 not define that macro, so locally the portable path was compared. The CI job
 `sanitized-c` builds the C side with `-msse4.2` as a second variant; that job passed in `ci`
-run 42961733968 (all tests, including the corpus replay and the property tests, compare the
-SIMD path against Rust with no divergence).
+run 42961733968 and again in run 43035685991 (all tests, including the corpus replay and the
+property tests, compare the SIMD path against Rust with no divergence). Since 0.2.0 the
+libFuzzer `diff` and `c_only` targets also run with `-msse4.2` in CI (legs `diff-sse42` and
+`c_only-sse42`).
+
+Other parsers. This file compares the port with picohttpparser only. Where picohttpparser,
+and so the port, differ from `httparse`, see [DIFFERENTIAL_HTTPARSE.md](DIFFERENTIAL_HTTPARSE.md);
+those are not deviations from the C original and are not classified by the harness.
