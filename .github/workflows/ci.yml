@@ -49,8 +49,15 @@ jobs:
           - variant: SSE4.2 C path
             sse42: "1"
     env:
+      # clang compiles the C shim and drives the link. With gcc, rustc's
+      # -nodefaultlibs suppresses libasan/libubsan; clang always links the
+      # sanitizer runtimes when -fsanitize is on the link line (added by build.rs).
+      CC: clang
+      RUSTFLAGS: -C linker=clang
       FUZZDIFF_C_SANITIZE: address,undefined
       FUZZDIFF_C_SANITIZE_LINK: "1"
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:print_stacktrace=1:detect_leaks=1:strict_string_checks=1
+      UBSAN_OPTIONS: halt_on_error=1:abort_on_error=1:print_stacktrace=1
       FUZZDIFF_C_SSE42: ${{ matrix.sse42 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -60,6 +67,8 @@ jobs:
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Show compiler and linker
+        run: clang --version
       - run: cargo test --workspace --release
 
   coverage:

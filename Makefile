@@ -47,7 +47,7 @@ fuzz-c: seeds
 
 # Plain cargo test with the C code under ASan and UBSan (Linux, gcc or clang).
 asan:
-	FUZZDIFF_C_SANITIZE=address,undefined FUZZDIFF_C_SANITIZE_LINK=1 cargo test --workspace --release
+	CC=clang RUSTFLAGS="-C linker=clang" FUZZDIFF_C_SANITIZE=address,undefined FUZZDIFF_C_SANITIZE_LINK=1 cargo test --workspace --release
 
 clean:
 	cargo clean
