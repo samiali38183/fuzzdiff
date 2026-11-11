@@ -82,5 +82,6 @@ tested here.
 
 The C SIMD path. picohttpparser has an SSE4.2 code path enabled by `__SSE4_2__`. MSVC does
 not define that macro, so locally the portable path was compared. The CI job
-`sanitized-c` builds the C side with `-msse4.2` as a second variant; that job has not run
-yet.
+`sanitized-c` builds the C side with `-msse4.2` as a second variant; that job passed in `ci`
+run 42961733968 (all tests, including the corpus replay and the property tests, compare the
+SIMD path against Rust with no divergence).

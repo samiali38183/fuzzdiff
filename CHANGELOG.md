@@ -10,5 +10,5 @@ Initial version.
 * Differential harness against the vendored C library (commit dd573d8).
 * Seed corpus (upstream test inputs and hand-written cases), property tests, three seeded
   bugs behind the `mutants` feature.
-* cargo-fuzz targets `diff`, `rust_only`, `c_only`; CI and fuzz workflows (not yet run).
+* cargo-fuzz targets `diff`, `rust_only`, `c_only`; CI and fuzz workflows (first runs green, see README).
 * Criterion benchmarks against the C parser.

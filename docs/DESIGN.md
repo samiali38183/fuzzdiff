@@ -115,5 +115,5 @@ as a control. Without the feature the mutant hooks are `const fn` returning `fal
 
 * Only HTTP/1.x text parsing. No URI parsing, no header semantics.
 * Only the portable C path was compared locally (see DEVIATIONS.md).
-* Fuzzing with libFuzzer has not run yet; it needs Linux, and runs in CI (`fuzz.yml`). What
-  ran locally is the deterministic generator in `generate.rs`, documented in the README.
+* libFuzzer runs only in CI (`fuzz.yml`, Linux), 120 s per target on pull requests; the
+  results are in the README. Locally only the deterministic generator in `generate.rs` ran.

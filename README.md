@@ -1,11 +1,14 @@
 # fuzzdiff
 
+[![ci](https://github.com/samiali38183/fuzzdiff/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/samiali38183/fuzzdiff/actions/workflows/ci.yml)
+[![fuzz](https://github.com/samiali38183/fuzzdiff/actions/workflows/fuzz.yml/badge.svg)](https://github.com/samiali38183/fuzzdiff/actions/workflows/fuzz.yml)
+
 A Rust reimplementation of [picohttpparser](https://github.com/h2o/picohttpparser) (the HTTP/1.x
 request, response, header and chunked-body parser written in C), with a harness that runs the
 C original and the Rust port side by side on the same input and reports any difference.
 
-Status: the code, tests and benchmarks ran locally on Windows. The libFuzzer jobs and the
-sanitizer builds are written but have not run yet, because they need Linux and CI. See
+Status: the code, tests and benchmarks ran locally on Windows; the test matrix, the sanitizer
+builds and the three libFuzzer targets have run on GitHub Actions and passed. See
 "What has and has not run".
 
 ## Why this exists
@@ -126,15 +129,29 @@ All numbers are from real runs on one Windows machine (Ryzen 5 5600G, rustc 1.99
 
 Ran locally: everything in the table above.
 
-Has not run, and CI must prove:
+Ran in CI, run [42961733968](https://github.com/samiali38183/fuzzdiff/actions/runs/42961733968) (`ci`) and run [42961733885](https://github.com/samiali38183/fuzzdiff/actions/runs/42961733885) (`fuzz`), both on the pull
+request that fixed the first run, all jobs green:
 
-* The three libFuzzer jobs in `.github/workflows/fuzz.yml` (`diff`, `rust_only`, `c_only`),
-  including the clang, ASan and UBSan link flags for the C side. They were written without
-  being able to run them on Windows, so they may need small fixes on first run.
-* The `sanitized-c` jobs (C under ASan and UBSan during `cargo test`, and with `-msse4.2` so
-  the SIMD path of the C parser is compared as well).
-* The Linux leg of the test matrix, cargo-deny and the coverage job on Actions.
-* Miri was not run.
+* `ci`: tests on Ubuntu and Windows, clippy, `mutants` detection, cargo-deny, and coverage
+  (`--fail-under-lines 90`, passed).
+* `ci`, sanitized C: the C parser is compiled with `-fsanitize=address,undefined
+  -fno-sanitize-recover=undefined` by clang, and `cargo test --workspace --release` runs with
+  `halt_on_error=1`. It passed in two variants, the portable C path and `-msse4.2` (the SIMD
+  path of the C parser, which the Windows runs could not reach). ASan and UBSan reported
+  nothing in the C code on the tests' inputs.
+* `fuzz`, libFuzzer on nightly, 120 s per target, seeded from `corpus/`, as printed by libFuzzer:
+
+| Target | What it runs | Executions | Time | Average exec/s | Corpus at end | Result |
+|---|---|---|---|---|---|---|
+| `diff` | C (ASan, coverage) against Rust, panics on a divergence | 5,027,708 | 121 s | 41,551 | 636 units | no crash, no divergence |
+| `rust_only` | Rust only, debug assertions, output invariants | 7,762,840 | 121 s | 64,155 | 509 units | no crash |
+| `c_only` | C only, ASan and UBSan | 6,509,270 | 121 s | 53,795 | 434 units | no crash, no sanitizer report |
+
+Two minutes per target is a smoke run, not an assurance. The `diff` and `c_only` fuzz targets
+build the C side without `-msse4.2`, so libFuzzer exercised the portable C path; the SIMD
+path was covered only by the `cargo test` sanitizer job above.
+
+Not run: Miri.
 
 The seeded-generator run above is a stand-in for fuzzing, not a replacement. It is blind
 (no coverage feedback), so libFuzzer should reach states it does not.
