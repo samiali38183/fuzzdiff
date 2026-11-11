@@ -263,7 +263,13 @@ impl ChunkedDecoder {
             // Incomplete with 100 KiB+ of framing that is >80% of the input: refuse.
             self.total_overhead = self.total_overhead.wrapping_add((total - dst) as u64);
             if self.total_overhead >= OVERHEAD_LIMIT
-                && self.total_read.wrapping_sub(self.total_overhead) < self.total_read / 4
+                && self.total_read.wrapping_sub(self.total_overhead)
+                    < self.total_read
+                        / if mutants::active(Mutant::OverheadRatio) {
+                            5
+                        } else {
+                            4
+                        }
             {
                 status = ChunkStatus::Error(Error::ChunkOverhead);
             }

@@ -36,6 +36,9 @@ jobs:
       - run: cargo test --workspace
       - name: Mutants must be detected
         run: cargo test --release -p fuzzdiff-harness --features mutants --test mutants -- --nocapture
+      - name: httparse comparison table is current
+        if: runner.os == 'Linux'
+        run: cargo run --release -p fuzzdiff-harness --example httparse_table -- --check
 
   sanitized-c:
     name: C under ASan and UBSan (${{ matrix.variant }})
@@ -70,6 +73,23 @@ jobs:
       - name: Show compiler and linker
         run: clang --version
       - run: cargo test --workspace --release
+
+  # Miri runs the pure-Rust crate's tests only. The C code and the FFI harness cannot run
+  # under Miri (no foreign function calls), so the harness crate is out of scope here.
+  miri:
+    name: Miri (fuzzdiff crate only)
+    runs-on: ubuntu-latest
+    env:
+      MIRIFLAGS: -Zmiri-strict-provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@2c76c034f9e32a5d6e2c104dc4df23a22476db04 # nightly
+        with:
+          toolchain: nightly
+          components: miri, rust-src
+      - run: cargo miri test -p fuzzdiff
 
   coverage:
     runs-on: ubuntu-latest

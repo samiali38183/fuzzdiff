@@ -24,5 +24,13 @@ calling convention rather than an input-triggered bug, and it is described in
 DEVIATIONS.md (D2). The fuzz targets bound `last_len` to valid values, so none of the runs
 above exercises it; it has not been reproduced under a sanitizer.
 
+Status on 2026-11-11, 0.2.0 work (pull request 3): `fuzz` run 43035685955 ran five legs for
+120 s each, including the C SIMD path (`-msse4.2`) under both the differential and the
+sanitizer targets: no crash, no divergence, no sanitizer report. Miri on the Rust crate:
+no undefined behaviour. A 2,000,000-input three-way sweep against `httparse` found no
+input on which picohttpparser and fuzzdiff differ and none that the documented
+disagreement classes do not explain; those classes are leniency differences between the C
+library and httparse, listed in DIFFERENTIAL_HTTPARSE.md, not defects in the C code.
+
 If a CI fuzz run produces a crash or a divergence, do not add the input or details to this
 file or to the public repository before deciding whether it should be reported upstream.

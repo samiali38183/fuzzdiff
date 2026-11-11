@@ -1,6 +1,6 @@
 [package]
 name = "fuzzdiff"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Memory-safe Rust port of the picohttpparser HTTP/1.x parser, validated against the C original by differential fuzzing"
 license = "MIT"

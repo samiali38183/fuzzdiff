@@ -1,6 +1,6 @@
 //! Deliberate bugs for testing the test harness.
 //!
-//! With the `mutants` cargo feature on, [`set_active`] switches one of three
+//! With the `mutants` cargo feature on, [`set_active`] switches one of five
 //! known-bad behaviours on for the current thread. The differential harness
 //! must detect each of them. Without the feature everything here compiles to
 //! a constant `false`, so the shipped parser contains none of this code.
@@ -18,14 +18,23 @@ pub enum Mutant {
     /// After a trailer line's CRLF the chunked decoder goes to the wrong
     /// state, so the blank line that ends the trailers is never recognised.
     WrongStateAfterCrlf,
+    /// The chunked decoder's framing-overhead guard uses `/ 5` instead of `/ 4`, so it fires
+    /// at 80% overhead instead of 75%. Only inputs with more than 100 KiB of framing
+    /// reach it, which the random generator never builds.
+    OverheadRatio,
+    /// The response parser waits for 3 bytes after the status-line spaces instead of 4,
+    /// so a head cut right after a malformed status code is rejected instead of "partial".
+    StatusGuard,
 }
 
 impl Mutant {
     /// All seeded bugs.
-    pub const ALL: [Mutant; 3] = [
+    pub const ALL: [Mutant; 5] = [
         Mutant::HeaderLenOffByOne,
         Mutant::MissingBoundsCheck,
         Mutant::WrongStateAfterCrlf,
+        Mutant::OverheadRatio,
+        Mutant::StatusGuard,
     ];
 }
 

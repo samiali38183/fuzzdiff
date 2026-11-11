@@ -218,7 +218,12 @@ impl Config {
         }
         c.skip_spaces()?;
         // Wants at least three digits and one more byte.
-        if c.rest().len() < 4 {
+        let need = if mutants::active(Mutant::StatusGuard) {
+            3
+        } else {
+            4
+        };
+        if c.rest().len() < need {
             return Err(Stop::Partial);
         }
         let status = c.status_code()?;
