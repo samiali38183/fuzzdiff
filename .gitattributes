@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.bin binary
+c/picohttpparser.c -text
+c/picohttpparser.h -text
