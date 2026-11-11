@@ -1,0 +1,9 @@
+/target
+/fuzz/target
+/fuzz/artifacts
+/fuzz/corpus/*/
+!/fuzz/corpus/diff/
+Cargo.lock.bak
+*.profraw
+lcov.info
+/coverage
