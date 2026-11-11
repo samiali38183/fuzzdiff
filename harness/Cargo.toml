@@ -1,0 +1,30 @@
+[package]
+name = "fuzzdiff-harness"
+version = "0.1.0"
+edition = "2021"
+description = "Differential test harness: runs the C picohttpparser and the fuzzdiff Rust port side by side"
+license = "MIT"
+publish = false
+build = "build.rs"
+
+[features]
+default = []
+# Switches on the seeded bugs in the Rust parser so tests/mutants.rs can show they are caught.
+mutants = ["fuzzdiff/mutants"]
+
+[dependencies]
+fuzzdiff = { path = ".." }
+
+[build-dependencies]
+cc = "1"
+
+[dev-dependencies]
+proptest = "1"
+criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "throughput"
+harness = false
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
