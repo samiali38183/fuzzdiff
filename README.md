@@ -231,6 +231,9 @@ cache size, a cold cache just starts from the seeds, and a cache written by a pu
 is readable only from that pull request's own later runs, so accumulation across weeks starts
 with the first scheduled or manually dispatched run on `main`. The log of every run prints the
 corpus file count before and after.
+Measured on this pull request: the first run started the `diff` leg from the 612 seed files; the
+second run (a later push) restored the cache entry of the first and started from 1,488 files,
+ran 4,968,447 executions in 120 s, and ended with 2,513 files, which were saved for the next run.
 
 Still not covered: the overhead guard and the `last_len > len` case (D2) are not reachable from
 the libFuzzer targets (`-max_len=4096`, `last_len` clamped; the overhead guard needs over 100 KiB
