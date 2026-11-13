@@ -5,10 +5,10 @@ agree (see [DEVIATIONS](DEVIATIONS.md)). That says nothing about how either beha
 a second, independent parser. This page adds one: [httparse](https://github.com/seanmonstar/httparse)
 1.10.1 (MIT or Apache-2.0, pinned exactly in `harness/Cargo.toml`), the HTTP/1.x parser
 hyper builds on. The result is a map of where "matches picohttpparser" and "matches a
-production Rust parser" are different statements. It is not a list of bugs: each difference
+widely used Rust parser" are different statements. It is not a list of bugs: each difference
 below is a leniency choice that one or both libraries made, and each is pinned by a test.
 
-Scope and limits, stated up front:
+Scope and limits:
 
 * Head parsing (request line or status line, header block) and the first chunk-size line.
   httparse offers no chunked decoder, only `parse_chunk_size`, so chunk-size lines are
@@ -334,7 +334,7 @@ RFC's own statements about why a rule exists:
   parser reports them; RFC 9112 sections 6.1 to 6.3 say what a recipient must do with them,
   and that is above this layer.
 
-The takeaway for a reader: picohttpparser (and so fuzzdiff by default) is the more lenient
+In short, picohttpparser (and so fuzzdiff by default) is the more lenient
 parser in most of the classes above with RFC 9112 text behind them (fold, SP runs, high bytes
 in the target, empty chunk size); the exception is bare LF inside a chunk extension, where
 httparse is the lenient one. An intermediary built on one and a
