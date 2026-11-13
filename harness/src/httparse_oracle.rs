@@ -4,7 +4,7 @@
 //! fuzzdiff port and `httparse` and reports whether the three agree. The point is
 //! not to find bugs in any of them (the first two are already compared by
 //! [`crate::compare_case`], which must report no divergence) but to map where
-//! "matches picohttpparser" and "matches a production Rust parser" are different
+//! "matches picohttpparser" and "matches a widely used Rust parser" are different
 //! statements. Every disagreement between picohttpparser and httparse is a
 //! documented leniency choice, listed in `docs/DIFFERENTIAL_HTTPARSE.md`.
 //!

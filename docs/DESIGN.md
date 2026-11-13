@@ -2,11 +2,11 @@
 
 ## Why picohttpparser
 
-The aim was a parser that is small enough to port faithfully in a few days, hostile-input
-facing, written in C with the usual pointer arithmetic, and permissively licensed so the
-original can be vendored.
+I wanted a parser that was small enough to port faithfully in a few days, reads untrusted input,
+is written in C with the usual pointer arithmetic, and has a license that lets me vendor the
+original.
 
-Candidates looked at:
+Candidates I looked at:
 
 * picohttpparser (HTTP/1.x request line, response line, headers, chunked decoder). 715 lines of
   C in one file plus a 96 line header. MIT or Perl dual license. Four entry points with a flat
@@ -18,7 +18,7 @@ Candidates looked at:
   attacker-controlled length) is about the allocator policy more than the parser.
 * A tar header parser. Fixed-size fields make it too easy; little state.
 
-picohttpparser wins on size, API shape and the mix of risk: it does pointer-based scanning
+picohttpparser won on size, API shape and the mix of risk: it does pointer-based scanning
 over a caller buffer, computes lengths by subtracting pointers, has a hand-written state
 machine with fall-through in the chunked decoder, accumulates a size in a loop, and
 modifies the buffer in place. Those are the places memory-safety bugs live in network
@@ -65,7 +65,7 @@ a heap overflow instead of silently reading spare capacity.
 
 ## How the port was written
 
-Not a line-by-line translation. The C code scans with pointers and macros that `return NULL`
+It is not a line-by-line translation. The C code scans with pointers and macros that `return NULL`
 through an out parameter; the Rust code scans slices with `position` and `get`, uses an
 internal `Stop { Partial, Fail(Error) }` with `?` instead of `CHECK_EOF` macros, and has the
 chunked state machine as an enum matched in a loop instead of fall-through `switch` cases.
@@ -98,7 +98,7 @@ length and `is_in_data` flag is compared, plus all decoded bytes and the leftove
 
 ## Mutants
 
-With the `mutants` feature, three deliberate bugs can be switched on per thread:
+With the `mutants` feature, five deliberate bugs can be switched on per thread:
 
 * `HeaderLenOffByOne`: header values longer than 16 bytes are one byte short.
 * `MissingBoundsCheck`: the guard before the byte after `HTTP/1.x` is relaxed and the byte
@@ -106,6 +106,9 @@ With the `mutants` feature, three deliberate bugs can be switched on per thread:
   panic, which the harness reports as `RustPanic`.
 * `WrongStateAfterCrlf`: after a trailer line the chunked decoder stays in the "middle of a
   line" state, so the blank line that ends the trailers is not recognised.
+* `OverheadRatio`: the chunk framing-overhead guard uses 80% where the C code uses 75%. It only matters
+  with more than 100 KiB of framing, so the random generator never reaches it and a targeted case does.
+* `StatusGuard`: the response parser waits for 3 bytes after the status-line spaces instead of 4 before judging the code.
 
 `harness/tests/mutants.rs` turns each on, runs the generator until the harness reports a
 divergence, and prints how many inputs that took. It also runs the generator with no mutant
