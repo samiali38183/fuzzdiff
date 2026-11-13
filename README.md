@@ -3,15 +3,28 @@
 [![ci](https://github.com/samiali38183/fuzzdiff/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/samiali38183/fuzzdiff/actions/workflows/ci.yml)
 [![fuzz](https://github.com/samiali38183/fuzzdiff/actions/workflows/fuzz.yml/badge.svg)](https://github.com/samiali38183/fuzzdiff/actions/workflows/fuzz.yml)
 
-A Rust reimplementation of [picohttpparser](https://github.com/h2o/picohttpparser) (the HTTP/1.x
-request, response, header and chunked-body parser written in C), with a harness that runs the
-C original and the Rust port side by side on the same input and reports any difference.
+A Rust port of [picohttpparser](https://github.com/h2o/picohttpparser) (the HTTP/1.x request, response, header and chunked-body parser written in C), with a harness that runs the C original and the Rust port on the same input and reports any difference. The question it answers is whether a memory-safe rewrite of a hostile-input parser behaves like the original, checked instead of asserted.
 
-Status: the code, tests and benchmarks ran locally on Windows; the test matrix, the sanitizer
-builds, Miri on the Rust crate and the libFuzzer targets (portable and SSE4.2 C paths) have run
-on GitHub Actions and passed. The Rust port is also compared against `httparse`, the parser
-hyper builds on; the two disagree in documented ways. See "What 'matches picohttpparser'
-means" and "What has and has not run".
+| | |
+|---|---|
+| Port | `#![forbid(unsafe_code)]`, no dependencies, about 1,010 lines including docs and the seeded test bugs |
+| Differential result | 0 divergences from the C original in a 90 s seeded run of 27,639,000 inputs, in the corpus replay (every prefix, every two-way chunked split, every byte value in every position), and in 120 s libFuzzer runs of five targets in CI (portable and SSE4.2 C paths) |
+| Does the harness notice bugs? | 5 deliberately planted bugs in the Rust port, all 5 detected; two of them needed a targeted test case because the random generator never reaches them ([demo](#demo-the-harness-catching-seeded-bugs)) |
+| Third opinion | also compared against `httparse` (the parser hyper builds on): the two disagree in documented classes, e.g. obsolete line folding and multiple spaces in the request line ([list](#comparison-with-httparse)) |
+| Sanitizers, Miri | C side under ASan and UBSan in CI, no reports; Miri on the Rust crate, no undefined behaviour |
+| Cost | Rust is about 1.4x to 1.5x slower than C on head parsing, level on chunked decoding |
+| Bugs found in the C original | none |
+| Limits | sampling, not proof; two documented deviations from C (D1, D2); see [What "matches" means](#what-matches-picohttpparser-means) |
+
+Run it (Rust stable and a C compiler):
+
+```
+git clone https://github.com/samiali38183/fuzzdiff && cd fuzzdiff
+cargo test --workspace
+cargo test --release -p fuzzdiff-harness --features mutants --test mutants -- --nocapture   # the seeded-bug demo
+```
+
+Where each result was produced (local Windows run, GitHub Actions jobs) is under [Results](#results) and [What has and has not run](#what-has-and-has-not-run).
 
 ## Why this exists
 
@@ -27,7 +40,7 @@ The reasoning and the alternatives are in [docs/DESIGN.md](docs/DESIGN.md).
 ## What is in the repository
 
 * `src/`: the Rust crate. `#![forbid(unsafe_code)]`, no dependencies, written to avoid
-  panics (checked indexing and arithmetic), about 990 lines including docs and the seeded test bugs. Request, response,
+  panics (checked indexing and arithmetic), about 1,010 lines including docs and the seeded test bugs. Request, response,
   header block and an incremental in-place chunked decoder.
 * `c/`: picohttpparser at commit dd573d8 (unmodified, hashes checked) and a thin shim that
   returns offsets instead of pointers and copies inputs into exact-size heap blocks.
