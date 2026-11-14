@@ -1,0 +1,14 @@
+# Output of: cargo test --release -p fuzzdiff-harness --features mutants --test mutants -- --nocapture
+# Run on 2026-11-14 (Windows, release build). Lines cut at 110 characters; the per-mutant "first failing input" lines are left out.
+mutant detection (deterministic generator, seed = input index + 1)
+HeaderLenOffByOne: generator caught after 3 inputs in 60.5µs as ResultMismatch
+HeaderLenOffByOne: no targeted case catches it
+MissingBoundsCheck: generator caught after 286 inputs in 1.0771ms as RustPanic
+MissingBoundsCheck: no targeted case catches it
+WrongStateAfterCrlf: generator caught after 8 inputs in 66.6µs as ResultMismatch
+WrongStateAfterCrlf: no targeted case catches it
+OverheadRatio: generator did not catch it in 2000000 inputs (8.2312734s)
+OverheadRatio: targeted case #1 catches it as ResultMismatch: Chunked last_len=0 max_headers=32 strict=false t
+StatusGuard: generator caught after 10085 inputs in 45.8213ms as ResultMismatch
+StatusGuard: targeted case #4 catches it as ResultMismatch: Response last_len=0 max_headers=32 strict=false tr
+control (no mutant): 500000 inputs and 9 targeted cases, no divergence, 2.3455575s

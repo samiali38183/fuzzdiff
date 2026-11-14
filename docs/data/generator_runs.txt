@@ -1,0 +1,6 @@
+# Two 90 second runs of the seeded generator (cargo run --release -p fuzzdiff-harness --example quickfuzz -- 90).
+# The count depends on machine speed and load.
+# 2026-11-11: figures as recorded in the README Results table (the raw output line was not kept).
+# 2026-11-14: raw output of the run, unedited.
+2026-11-11: 27639000 inputs in 90s: equal=14300000 both_reject=12900000 rust_stricter=460000 divergences=0
+2026-11-14: 23539000 inputs in 90s (seeds up to 23539001): equal=12167506 both_reject=10980496 rust_stricter=390998 divergences=0

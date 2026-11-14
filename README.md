@@ -5,6 +5,12 @@
 
 fuzzdiff is a Rust port of [picohttpparser](https://github.com/h2o/picohttpparser), the C parser for HTTP/1.x requests, responses, headers and chunked bodies. Next to the port is a harness that feeds the same input to the C original and the Rust port and reports any difference. I wanted to know whether a memory-safe rewrite of a parser that reads hostile input behaves like the original, and to check that instead of just claiming it.
 
+In plain terms: servers use parsers like this one to read requests from strangers, and bugs in such parsers are a classic way in. I rewrote one in a language that prevents that class of bug, then fed both versions tens of millions of random inputs and compared every answer.
+
+![Differential fuzzing result: 0 differences between the C parser and the Rust port in 90-second runs of 27,639,000 and 23,539,000 generated inputs, and 5 of 5 deliberately planted bugs detected by the harness.](docs/img/hero-differential.png)
+
+*The C original and the Rust port gave the same answer on every generated input, and the harness caught all 5 bugs I planted to test it (random inputs never found one of them, so a hand-written case caught it). Sampling, not proof. Numbers come from [`docs/data/`](docs/data/), and `scripts/make_hero.py` redraws the image from them.*
+
 | | |
 |---|---|
 | Port | `#![forbid(unsafe_code)]`, no dependencies, about 1,010 lines including docs and the seeded test bugs |
@@ -194,7 +200,7 @@ All numbers are from runs on one Windows machine (Ryzen 5 5600G, rustc 1.99.1, M
 | Miri, `cargo +nightly miri test -p fuzzdiff` (Rust crate only, `-Zmiri-strict-provenance`) | 13 tests pass, no undefined behaviour reported (local Windows run, and the `miri` CI job) |
 | Property tests | 5 properties, 3000 cases each by default |
 | Corpus replay | every file through every entry point, every prefix length with incremental `last_len`, every two-way chunked split, every byte value in every position of a valid message; 0 divergences |
-| Seeded generator, 90 s release run | 27,639,000 inputs, 0 divergences (14.3M equal, 12.9M both reject, 0.46M rust-stricter by D1) |
+| Seeded generator, 90 s release run | 27,639,000 inputs, 0 divergences (14.3M equal, 12.9M both reject, 0.46M rust-stricter by D1). A re-run on 2026-11-14 covered 23,539,000 inputs (the count depends on machine speed), also 0 divergences; both are in [`docs/data/generator_runs.txt`](docs/data/generator_runs.txt) |
 | Seeded bugs | 5 of 5 detected (generator: 3, 286, 8 and 10,085 inputs; one needs a targeted case); 500,000-input control without a bug: clean |
 | httparse comparison | 2,000,000-input sweep: 0 differences between picohttpparser and fuzzdiff; 0 disagreements with httparse that no known class explains, see [docs/DIFFERENTIAL_HTTPARSE.md](docs/DIFFERENTIAL_HTTPARSE.md) |
 | Line coverage of `src/` | 95.53% lines, 95.68% regions (cargo-llvm-cov in CI, tests from both crates; 95.88% in the earlier local run) |
