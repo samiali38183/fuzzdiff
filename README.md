@@ -148,7 +148,7 @@ StatusGuard: targeted case #4 catches it as ResultMismatch
 control (no mutant): 500000 inputs and 9 targeted cases, no divergence, 1.5069541s
 ```
 
-(The test also prints the first failing input for each; omitted here.)
+(The test also prints the first failing input for each seeded bug, and a "no targeted case catches it" line for the first three; both are omitted here.)
 
 What it shows and what it does not:
 
