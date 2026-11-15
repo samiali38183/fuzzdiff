@@ -1,0 +1,19 @@
+('(none: unmodified C)', 'control', 'not caught', 'not caught')
+('EolRangesNoDel', 'header value / reason scan no longer stops at DEL (0x7f) inside a 16-byte block', 'caught', 'caught')
+('EolRangesNoUS', 'header value / reason scan misses byte 0x1f', 'caught', 'caught')
+('TokenRangesNoBackslash', "token scan (method, header name) no longer stops at ']' and backslash inside a block", 'caught', 'caught')
+('TokenRangesNoHighBytes', 'token scan misses bytes 0x80-0xff inside a block', 'caught', 'caught')
+('PathRangesNoDel', 'request-target scan no longer stops at DEL inside a block', 'caught', 'caught')
+('FoundOffByOne', "block scan treats a hit at offset 15 as 'nothing found'", 'caught', 'caught')
+('GuardLongerThan16', 'SIMD scan skipped when exactly 16 bytes remain (the byte loop handles them): expected to be behaviourally equivalent', 'not caught', 'not caught')
+
+| Planted C bug | Effect | Existing checks | Window sweep |
+|---|---|---|---|
+| (none: unmodified C) | control | not caught | not caught |
+| EolRangesNoDel | header value / reason scan no longer stops at DEL (0x7f) inside a 16-byte block | caught | caught |
+| EolRangesNoUS | header value / reason scan misses byte 0x1f | caught | caught |
+| TokenRangesNoBackslash | token scan (method, header name) no longer stops at ']' and backslash inside a block | caught | caught |
+| TokenRangesNoHighBytes | token scan misses bytes 0x80-0xff inside a block | caught | caught |
+| PathRangesNoDel | request-target scan no longer stops at DEL inside a block | caught | caught |
+| FoundOffByOne | block scan treats a hit at offset 15 as 'nothing found' | caught | caught |
+| GuardLongerThan16 | SIMD scan skipped when exactly 16 bytes remain (the byte loop handles them): expected to be behaviourally equivalent | not caught | not caught |

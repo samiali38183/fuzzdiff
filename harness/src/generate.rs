@@ -333,3 +333,71 @@ pub fn targeted_cases() -> Vec<Case> {
     }
     out
 }
+
+/// Which parser field a boundary case puts its probe byte in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Field {
+    /// Request method (`parse_token`).
+    Method,
+    /// Request target (`ADVANCE_TOKEN`).
+    Path,
+    /// Header name (`parse_token`).
+    HeaderName,
+    /// Header value (`get_token_to_eol`).
+    HeaderValue,
+    /// Response reason phrase (`get_token_to_eol`).
+    Reason,
+}
+
+/// Longest field the window sweep builds. 40 bytes is two full 16-byte SSE blocks plus a tail.
+pub const SWEEP_MAX_FIELD_LEN: usize = 40;
+
+/// Calls `f` with every case of the SIMD window sweep and returns how many it made.
+///
+/// The C parser's SSE4.2 path scans token and header-value bytes 16 at a time and falls back to
+/// a byte loop for the tail. Random inputs rarely put a special byte at each offset of each
+/// block, so this builds them deliberately. For each field kind, each field length from 0 to
+/// `SWEEP_MAX_FIELD_LEN`, each probe position inside the field and each of the 256 byte values,
+/// it makes a request or response with that byte in that position. Each such input is made
+/// twice: complete, and cut off right after the field (the end of the buffer then falls
+/// somewhere inside or just after a block). 2,101,760 cases. Run against both builds of the C
+/// parser (portable and SSE4.2) through the same `compare_case`.
+pub fn simd_boundary_cases(mut f: impl FnMut(Field, Case)) -> usize {
+    const FIELDS: [Field; 5] = [
+        Field::Method,
+        Field::Path,
+        Field::HeaderName,
+        Field::HeaderValue,
+        Field::Reason,
+    ];
+    let mut n = 0;
+    for field in FIELDS {
+        for len in 0..=SWEEP_MAX_FIELD_LEN {
+            // len == 0 has no position to probe; the empty field is still one case.
+            for pos in 0..len.max(1) {
+                for byte in 0..=255u8 {
+                    let mut body = vec![b'a'; len];
+                    if len > 0 {
+                        body[pos] = byte;
+                    }
+                    let (prefix, suffix, op): (&[u8], &[u8], Op) = match field {
+                        Field::Method => (b"", b" / HTTP/1.1\r\n\r\n", Op::Request),
+                        Field::Path => (b"GET /", b" HTTP/1.1\r\nHost: h\r\n\r\n", Op::Request),
+                        Field::HeaderName => (b"GET / HTTP/1.1\r\n", b": v\r\n\r\n", Op::Request),
+                        Field::HeaderValue => (b"GET / HTTP/1.1\r\nh: ", b"\r\n\r\n", Op::Request),
+                        Field::Reason => (b"HTTP/1.1 200 ", b"\r\n\r\n", Op::Response),
+                    };
+                    let mut full = prefix.to_vec();
+                    full.extend_from_slice(&body);
+                    let cut = full.len();
+                    full.extend_from_slice(suffix);
+                    f(field, Case::new(op, full.clone()));
+                    full.truncate(cut);
+                    f(field, Case::new(op, full));
+                    n += 2;
+                }
+            }
+        }
+    }
+    n
+}
