@@ -15,7 +15,7 @@ In plain terms: servers use parsers like this one to read requests from stranger
 |---|---|
 | Port | `#![forbid(unsafe_code)]`, no dependencies, about 1,010 lines including docs and the seeded test bugs |
 | Differential result | 0 divergences from the C original in a 90 s seeded run of 27,639,000 inputs, in the corpus replay (every prefix, every two-way chunked split, every byte value in every position), and in 120 s libFuzzer runs of five legs in CI (three targets, with the C side on the portable and the SSE4.2 path) |
-| Does the harness notice bugs? | 5 deliberately planted bugs in the Rust port, all 5 detected; two of them needed a targeted test case because the random generator never reaches them ([demo](#demo-the-harness-catching-seeded-bugs)) |
+| Does the harness notice bugs? | 5 deliberately planted bugs in the Rust port, all 5 detected; one of them needed a targeted test case because the random generator never reaches it ([demo](#demo-the-harness-catching-seeded-bugs)) |
 | Third opinion | also compared against `httparse` (the parser hyper builds on): the two disagree in documented classes, e.g. obsolete line folding and multiple spaces in the request line ([list](#comparison-with-httparse)) |
 | Sanitizers, Miri | C side under ASan and UBSan in CI, no reports; Miri on the Rust crate, no undefined behaviour |
 | Cost | Rust is about 1.4x to 1.5x slower than C on head parsing, level on chunked decoding |
