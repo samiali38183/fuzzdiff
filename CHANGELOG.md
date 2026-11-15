@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+* `FUZZDIFF_C_SSE42=1` works with MSVC, so the C SIMD path runs on Windows; the Windows CI job
+  runs the corpus replay and the new sweep with it.
+* `harness/tests/simd_boundaries.rs`: 2,101,760 deterministic inputs that put every byte value
+  at every offset of fields up to 40 bytes.
+* `scripts/c_mutants.py` and `FUZZDIFF_C_DIR`: plant one-line bugs in a copy of the C SIMD code
+  and record which checks notice. Result in `docs/data/c_mutants_run.txt`.
+* README shortened; results, run records and limits moved to `docs/EVIDENCE.md`.
+* No change to the parser's behaviour or public API.
+
 ## 0.2.0
 
 * Three-way differential: `httparse` 1.10.1 (pinned) is a third oracle in the harness. Curated
